@@ -561,6 +561,7 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 				defer guestCacheSWRPending.Done()
 				candidate, err := newCandidateFromPendingBackendCaching(p)
 				if err != nil {
+					fmt.Println("ERROR after candidate")
 					// nowhere to log error
 					return
 				}

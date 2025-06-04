@@ -561,7 +561,11 @@ func httpCacheGetSuggestedCacheWriteOptions(cacheHandle *fastly.HTTPCacheHandle,
 
 func (candidateResponse *CandidateResponse) finalizeOptions() (fastly.HTTPCacheStorageAction, *cacheWriteOptions, error) {
 	var storageAction = candidateResponse.suggestedStorageAction
+
+	fmt.Println("storageAction: ", candidateResponse.suggestedStorageAction)
+
 	if candidateResponse.useStorageAction {
+		fmt.Println("candidateResponse.useStorageAction: ", candidateResponse.overrideStorageAction)
 		storageAction = candidateResponse.overrideStorageAction
 	}
 
@@ -569,6 +573,7 @@ func (candidateResponse *CandidateResponse) finalizeOptions() (fastly.HTTPCacheS
 	if suggestedCacheWriteOptions == nil {
 		var err error
 		suggestedCacheWriteOptions, err = candidateResponse.buildFreshSuggestedCacheWriteOptions()
+		fmt.Println("suggestedCacheWriteOptions: ", suggestedCacheWriteOptions)
 		if err != nil {
 			return 0, nil, err
 		}
@@ -581,14 +586,18 @@ func (candidateResponse *CandidateResponse) finalizeOptions() (fastly.HTTPCacheS
 	} else {
 		opts.maxAge = suggestedCacheWriteOptions.maxAge
 	}
+	fmt.Println("opts.maxage: ", opts.maxAge)
 
 	opts.age = suggestedCacheWriteOptions.age
+
+	fmt.Println("opts.age: ", opts.age)
 
 	if candidateResponse.useSWR {
 		opts.stale = candidateResponse.overrideStaleWhileRevalidate
 	} else {
 		opts.stale = suggestedCacheWriteOptions.stale
 	}
+	fmt.Println("opts.stale: ", opts.stale)
 
 	if candidateResponse.useVary {
 		opts.vary = candidateResponse.overrideVary
@@ -596,17 +605,23 @@ func (candidateResponse *CandidateResponse) finalizeOptions() (fastly.HTTPCacheS
 		opts.vary = suggestedCacheWriteOptions.vary
 	}
 
+	fmt.Println("opts.vary: ", opts.vary)
+
 	if candidateResponse.useSurrogate {
 		opts.surrogate = candidateResponse.overrideSurrogateKeys
 	} else {
 		opts.surrogate = suggestedCacheWriteOptions.surrogate
 	}
 
+	fmt.Println("opts.surrogate: ", opts.surrogate)
+
 	if candidateResponse.usePCI {
 		opts.sensitive = candidateResponse.overridePCI
 	} else {
 		opts.sensitive = suggestedCacheWriteOptions.sensitive
 	}
+
+	fmt.Println("opts.sensitive: ", opts.sensitive)
 
 	if candidateResponse.bodyTransform == nil {
 		if len, ok := bodyHasKnownLength(candidateResponse.abiBody); ok {
@@ -715,6 +730,8 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 	switch action {
 	case fastly.HTTPCacheStorageActionInsert:
 		body, err := fastly.HTTPCacheTransactionInsert(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
+		fmt.Println("start fastly.HTTPCacheStorageActionInsert1: ", body)
+		fmt.Println("fastly.HTTPCacheStorageActionInsert2: ", candidateResponse.cacheHandle)
 		if err != nil {
 			return fmt.Errorf("cache transaction insert: %w", err)
 		}
@@ -727,26 +744,35 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 			return fmt.Errorf("body.Append(): %w", err)
 		}
 		body.Close()
+		fmt.Println("finish fastly.HTTPCacheStorageActionInsert1: ", body)
 
 	case fastly.HTTPCacheStorageActionUpdate:
+		fmt.Println("start fastly.HTTPCacheStorageActionUpdate: ")
+
 		err := fastly.HTTPCacheTransactionUpdate(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
+		fmt.Println("finished fastly.HTTPCacheStorageActionUpdate: ")
 		if err != nil {
 			return fmt.Errorf("cache transaction update: %w", err)
 		}
 
 	case fastly.HTTPCacheStorageActionDoNotStore:
+		fmt.Println("start fastly.HTTPCacheStorageActionDoNotStore: ")
 		// Use `abandon` to only wake a single waiter in the
 		// non-hit-for-pass case, so concurrent requests remain
 		// serialized.
 		if err := fastly.HTTPCacheTransactionAbandon(candidateResponse.cacheHandle); err != nil {
 			return fmt.Errorf("cache transaction abandon: %w", err)
 		}
+		fmt.Println("finish fastly.HTTPCacheStorageActionDoNotStore: ")
 
 	case fastly.HTTPCacheStorageActionRecordUncacheable:
+		fmt.Println("start fastly.HTTPCacheStorageActionRecordUncacheable: ")
 		err := fastly.HTTPCacheTransactionRecordNotCacheable(candidateResponse.cacheHandle, &opts.abiOpts)
 		if err != nil {
 			return fmt.Errorf("cache transaction record not cacheable: %w", err)
 		}
+		fmt.Println("finish fastly.HTTPCacheStorageActionRecordUncacheable: ")
+
 	}
 
 	return nil

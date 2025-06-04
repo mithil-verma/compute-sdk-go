@@ -132,10 +132,13 @@ const (
 func (resp *Response) updateFastlyCacheHeaders(req *Request) {
 	// TODO(dgryski): Set the abi headers too or just the map slice?
 
+	fmt.Println("RESP HITS: ", resp.cacheResponse.hits)
 	if hits := resp.cacheResponse.hits; hits != 0 {
+		fmt.Println("HIT cache header update")
 		resp.Header.Add(xCache, valHIT)
 		resp.Header.Add(xCacheHits, strconv.Itoa(int(hits)))
 	} else {
+		fmt.Println("MISS cache header update")
 		resp.Header.Add(xCache, valMISS)
 		resp.Header.Add(xCacheHits, val0)
 	}
