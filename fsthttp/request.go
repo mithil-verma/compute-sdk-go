@@ -493,91 +493,93 @@ func pendingToABIResponse(ctx context.Context, errc chan error, abiPending *fast
 var guestCacheSWRPending sync.WaitGroup
 
 func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Response, error) {
-	// use guest cache
+	fmt.Println("[sendWithGuestCache] Starting")
 
 	if ok, err := fastly.HTTPCacheIsRequestCacheable(req.abi.req); err != nil {
+		fmt.Println("[sendWithGuestCache] Request not cacheable (error):", err)
 		return nil, fmt.Errorf("request not cacheable: %v", err)
 	} else if !ok {
-		// no error during lookup but request not cacheable;
+		fmt.Println("[sendWithGuestCache] Request not cacheable (ok=false)")
 		abiResp, abiBody, err := req.sendWithoutCaching(backend)
 		if err != nil {
 			return nil, err
-
 		}
-
 		resp, err := newResponse(req, backend, abiResp, abiBody)
 		if err != nil {
 			return nil, fmt.Errorf("construct response: %w", err)
 		}
-
 		resp.updateFastlyCacheHeaders(req)
 		return resp, nil
 	}
 
 	var options fastly.HTTPCacheLookupOptions
 	if key := req.CacheOptions.OverrideKey; key != "" {
+		fmt.Println("[sendWithGuestCache] Using OverrideKey:", key)
 		options.OverrideKey(key)
 		req.CacheOptions.OverrideKey = ""
 	}
 
-	// force the lookup to await in the host, retrieving any errors synchronously
 	cacheHandle, err := fastly.HTTPCacheTransactionLookup(req.abi.req, &options)
 	if err != nil {
+		fmt.Println("[sendWithGuestCache] Cache transaction lookup error:", err)
 		return nil, fmt.Errorf("cache transaction lookup: %w", err)
 	}
-	// in a function so we can change cacheHandle later and have it reflected here
 	defer func() {
 		if cacheHandle != nil {
+			fmt.Println("[sendWithGuestCache] Closing cacheHandle in defer")
 			fastly.HTTPCacheTransactionClose(cacheHandle)
 		}
 	}()
+
 	if err := httpCacheWait(cacheHandle); err != nil {
+		fmt.Println("[sendWithGuestCache] Error waiting on cache:", err)
 		return nil, err
 	}
 
-	// is there a "usable" cached response (i.e. fresh or within SWR period)
 	resp, err := httpCacheGetFoundResponse(cacheHandle, req, backend, true)
 	if err != nil {
+		fmt.Println("[sendWithGuestCache] Error getting cached response:", err)
 		return nil, err
 	}
 
 	if resp != nil {
-		// got a response from the cache
+		fmt.Println("[sendWithGuestCache] Cache HIT")
 
-		fmt.Println("It's A HIT")
-
-		// if this is during SWR, we may be the "lucky winner" who is
-		// tasked with performing a background revalidation
 		if ok, _ := httpCacheMustInsertOrUpdate(cacheHandle); ok {
+			fmt.Println("[sendWithGuestCache] SWR revalidation: launching goroutine")
+
 			pending, err := req.sendAsyncForCaching(ctx, cacheHandle, backend)
-			fmt.Println("req.sendAsyncForCaching: ", pending)
 			if err != nil {
+				fmt.Println("[sendWithGuestCache] Error launching async caching request:", err)
 				return nil, err
 			}
+			fmt.Printf("[sendWithGuestCache] Pending: %+v\n", pending)
 
-			// Wait for the pending respond, then call any after-end hooks
 			guestCacheSWRPending.Add(1)
 			go func(p *pendingBackendRequestForCaching, h *fastly.HTTPCacheHandle) {
 				defer guestCacheSWRPending.Done()
+				fmt.Println("[Goroutine] Started")
+
 				candidate, err := newCandidateFromPendingBackendCaching(p)
 				if err != nil {
-					fmt.Println("ERROR after candidate")
-					// nowhere to log error
+					fmt.Println("[Goroutine] Error creating candidate:", err)
 					return
 				}
 				candidate.applyInBackground()
+				fmt.Println("[Goroutine] Applied candidate in background")
+
 				fastly.HTTPCacheTransactionClose(h)
+				fmt.Println("[Goroutine] Closed cache handle")
 			}(pending, cacheHandle)
-			// let cache handle be closed in goroutine
+
+			// Let goroutine own the cacheHandle now
 			cacheHandle = nil
 		}
 
-		// Meanwhile, whether fresh or in SWR, we can immediately return
-		// the cached response:
 		resp.updateFastlyCacheHeaders(req)
+		fmt.Println("[sendWithGuestCache] Returning cached response")
 		return resp, nil
 	}
-
 	// no cached response
 
 	if ok, _ := httpCacheMustInsertOrUpdate(cacheHandle); ok {

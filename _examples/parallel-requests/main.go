@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -30,6 +31,7 @@ func main() {
 			wg.Add(1)
 			go func(url string) {
 				defer wg.Done()
+				fmt.Printf("[goroutine] Starting %s", url)
 				log.Printf("Starting %s", url)
 
 				req, err := fsthttp.NewRequest(fsthttp.MethodGet, url, nil)
@@ -56,6 +58,8 @@ func main() {
 					log.Printf("%s: stream response body: %v", url, err)
 					return
 				}
+
+				fmt.Printf("[goroutine] FINISHED %s", url)
 
 				log.Printf("Finished %s", url)
 			}(url)
