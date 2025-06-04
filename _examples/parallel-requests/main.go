@@ -23,15 +23,18 @@ func main() {
 
 		// Send several requests in parallel.
 		var wg sync.WaitGroup
-		for _, url := range []string{
-			"https://http-me.glitch.me/drip=2?wait=3000", // delay 3s + stream body 2s = 5s
-			"https://http-me.glitch.me/drip=2?wait=2000", // delay 2s + stream body 2s = 4s
-			"https://http-me.glitch.me/wait=3000",        // delay 3s + stream body 0s = 3s
-		} {
+		urls := []string{
+			"https://http-me.glitch.me/drip=2?wait=3000", // 5s
+			"https://http-me.glitch.me/drip=2?wait=2000", // 4s
+			"https://http-me.glitch.me/wait=3000",        // 3s
+		}
+
+		for _, url := range urls {
 			wg.Add(1)
 			go func(url string) {
+				fmt.Println("[goroutine] STARTING:", url)
 				defer wg.Done()
-				fmt.Printf("[goroutine] Starting %s", url)
+
 				log.Printf("Starting %s", url)
 
 				req, err := fsthttp.NewRequest(fsthttp.MethodGet, url, nil)
@@ -41,30 +44,27 @@ func main() {
 				}
 				req.CacheOptions.Pass = true
 
-				// Sending HTTP requests in separate goroutines is both
-				// concurrent and parallel. For example, 3 requests that each
-				// take 3s to return a response will take about 3s in total.
 				resp, err := req.Send(ctx, "httpme")
 				if err != nil {
 					log.Printf("%s: send request: %v", url, err)
 					return
 				}
 
-				// All other code run in separate goroutines is concurrent but
-				// not parallel. For example, reading 3 response bodies that
-				// each take 3s will take about 9s in total.
 				_, err = io.Copy(io.Discard, resp.Body)
 				if err != nil {
 					log.Printf("%s: stream response body: %v", url, err)
 					return
 				}
 
-				fmt.Printf("[goroutine] FINISHED %s", url)
-
+				fmt.Println("[goroutine] FINISHED:", url)
 				log.Printf("Finished %s", url)
 			}(url)
 		}
+
+		fmt.Println("[main] Waiting for all goroutines...")
 		wg.Wait()
+		fmt.Println("[main] All goroutines finished")
+		log.Printf("Finished after %s", time.Since(begin))
 
 		// All requests should finish in about as long as the longest individual
 		// request took. That is, about 5s, rather than 5s+4s+3s=12s.
