@@ -1537,10 +1537,10 @@ type httpCacheHitCount prim.U64
 
 const (
 	// Insert the response into cache (`transaction_insert*`).
-	HTTPCacheStorageActionInsert HTTPCacheStorageAction = 1
+	HTTPCacheStorageActionInsert HTTPCacheStorageAction = 0
 
 	// Update the stale response in cache (`transaction_update*`).
-	HTTPCacheStorageActionUpdate HTTPCacheStorageAction = 0
+	HTTPCacheStorageActionUpdate HTTPCacheStorageAction = 1
 
 	// Do not store this response.
 	HTTPCacheStorageActionDoNotStore HTTPCacheStorageAction = 2

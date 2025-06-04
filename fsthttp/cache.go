@@ -206,6 +206,7 @@ func newCandidateFromPendingBackendCaching(pending *pendingBackendRequestForCach
 	if err != nil {
 		return nil, fmt.Errorf("new candidate: %w", err)
 	}
+	candidate.overrideStorageAction = 1
 
 	fmt.Println("newCandidate: ", candidate)
 
