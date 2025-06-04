@@ -154,6 +154,7 @@ func httpCacheWait(c *fastly.HTTPCacheHandle) error {
 
 func httpCacheMustInsertOrUpdate(c *fastly.HTTPCacheHandle) (bool, error) {
 	state, err := fastly.HTTPCacheGetState(c)
+	fmt.Println("req.sendAsyncForCaching state VALUE: ", state)
 	if err != nil {
 		return false, fmt.Errorf("get state: %w", err)
 
@@ -205,6 +206,8 @@ func newCandidateFromPendingBackendCaching(pending *pendingBackendRequestForCach
 	if err != nil {
 		return nil, fmt.Errorf("new candidate: %w", err)
 	}
+
+	fmt.Println("newCandidate: ", candidate)
 
 	if fn := pending.afterSend; fn != nil {
 		if err := fn(candidate); err != nil {
