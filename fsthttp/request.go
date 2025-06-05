@@ -570,7 +570,9 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 					return
 				}
 				candidate.applyInBackground()
-				fmt.Println("[Goroutine] Applied candidate in background")
+				age, err := candidate.Age()
+				fmt.Println("[Goroutine] Applied candidate in background, ", age)
+				fmt.Printf("[Goroutine] candidate.cacheHandle=%p, passed handle=%p\n", candidate.cacheHandle, h)
 
 				fastly.HTTPCacheTransactionClose(candidate.cacheHandle)
 				fmt.Println("[Goroutine] Closed cache handle")
