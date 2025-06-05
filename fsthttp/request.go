@@ -493,7 +493,7 @@ func pendingToABIResponse(ctx context.Context, errc chan error, abiPending *fast
 var guestCacheSWRPending sync.WaitGroup
 
 func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Response, error) {
-	fmt.Println("[sendWithGuestCache] Starting")
+	fmt.Println("[sendWithGuestCache] Starting: ", req)
 
 	if ok, err := fastly.HTTPCacheIsRequestCacheable(req.abi.req); err != nil {
 		fmt.Println("[sendWithGuestCache] Request not cacheable (error):", err)
@@ -519,7 +519,11 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 		req.CacheOptions.OverrideKey = ""
 	}
 
+	fmt.Println("req.abi.req: ", req.abi.req)
+	fmt.Println("OPTIONS: ", &options)
+
 	cacheHandle, err := fastly.HTTPCacheTransactionLookup(req.abi.req, &options)
+
 	if err != nil {
 		fmt.Println("[sendWithGuestCache] Cache transaction lookup error:", err)
 		return nil, fmt.Errorf("cache transaction lookup: %w", err)
@@ -543,10 +547,10 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 	}
 
 	if resp != nil {
-		fmt.Println("[sendWithGuestCache] Cache HIT")
+		fmt.Println("[sendWithGuestCache] Cache HIT", cacheHandle)
 
 		if ok, _ := httpCacheMustInsertOrUpdate(cacheHandle); ok {
-			fmt.Println("[sendWithGuestCache] SWR revalidation: launching goroutine")
+			fmt.Println("[sendWithGuestCache] SWR revalidation: launching goroutine", backend)
 
 			pending, err := req.sendAsyncForCaching(ctx, cacheHandle, backend)
 			if err != nil {

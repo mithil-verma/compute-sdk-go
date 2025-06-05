@@ -91,10 +91,12 @@ func (opts *cacheWriteOptions) loadFromABI() {
 func (opts *cacheWriteOptions) loadFromHandle(c *fastly.HTTPCacheHandle) error {
 
 	var err error
+
 	if ns, err := fastly.HTTPCacheGetMaxAgeNs(c); err != nil {
 		return fmt.Errorf("get max age: %w", err)
 	} else {
 		opts.maxAge = u64nsTou32s(uint64(ns))
+		fmt.Println("GET THE MAX AGE: ", opts.maxAge)
 	}
 
 	opts.vary, err = fastly.HTTPCacheGetVaryRule(c)
@@ -106,12 +108,14 @@ func (opts *cacheWriteOptions) loadFromHandle(c *fastly.HTTPCacheHandle) error {
 		return fmt.Errorf("get age: %w", err)
 	} else {
 		opts.age = u64nsTou32s(uint64(ns))
+		fmt.Println("GET THE HEADER AGE: ", opts.age)
 	}
 
 	if ns, err := fastly.HTTPCacheGetStaleWhileRevalidateNs(c); err != nil {
 		return fmt.Errorf("get stale while revalidate: %w", err)
 	} else {
 		opts.stale = u64nsTou32s(uint64(ns))
+		fmt.Println("GET THE SWR: ", opts.stale)
 	}
 
 	opts.surrogate, err = fastly.HTTPCacheGetSurrogateKeys(c)
@@ -170,6 +174,8 @@ func httpCacheGetFoundResponse(c *fastly.HTTPCacheHandle, req *Request, backend 
 		}
 		return nil, fmt.Errorf("get found response: %w", err)
 	}
+	fmt.Println("abiResp: ", abiResp)
+	fmt.Println("abiBody: ", abiBody)
 
 	hits, err := fastly.HTTPCacheGetHits(c)
 	if err != nil {
@@ -208,7 +214,14 @@ func newCandidateFromPendingBackendCaching(pending *pendingBackendRequestForCach
 	}
 	//candidate.useStorageAction = 1
 
-	fmt.Println("newCandidate: ", candidate)
+	ttl, _ := candidate.TTL()
+	fmt.Println("TTLL: ", ttl)
+
+	age, _ := candidate.Age()
+	fmt.Println("AGEE: ", age)
+
+	age, _ := candidate.cacheHandle
+	fmt.Println("TTLL: ", age)
 
 	if fn := pending.afterSend; fn != nil {
 		if err := fn(candidate); err != nil {
