@@ -738,6 +738,10 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("Final opts before insert:", opts.sensitive, opts.maxAge, opts.vary, opts.age)
+
+	opts.sensitive = false
+
 	switch action {
 	case fastly.HTTPCacheStorageActionInsert:
 		body, err := fastly.HTTPCacheTransactionInsert(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
