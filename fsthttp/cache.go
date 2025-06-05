@@ -741,6 +741,9 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 	fmt.Println("Final opts before insert:", opts.sensitive, opts.maxAge, opts.vary, opts.age)
 
 	opts.sensitive = false
+	opts.flushToABI()
+
+	fmt.Println("Final Final opts before insert:", opts.sensitive, opts.maxAge, opts.vary, opts.age)
 
 	switch action {
 	case fastly.HTTPCacheStorageActionInsert:
