@@ -220,9 +220,6 @@ func newCandidateFromPendingBackendCaching(pending *pendingBackendRequestForCach
 	age, _ := candidate.Age()
 	fmt.Println("AGEE: ", age)
 
-	age, _ := candidate.cacheHandle
-	fmt.Println("TTLL: ", age)
-
 	if fn := pending.afterSend; fn != nil {
 		if err := fn(candidate); err != nil {
 			return nil, fmt.Errorf("after send: %w", err)
