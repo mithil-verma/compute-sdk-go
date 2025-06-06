@@ -756,7 +756,12 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 		if err != nil {
 			return fmt.Errorf("cache transaction insert: %w", err)
 		}
+		state, err := fastly.HTTPCacheGetState(candidateResponse.cacheHandle)
+		fmt.Println("MITHIL1 state VALUE: ", state)
+		if err != nil {
+			return fmt.Errorf("get state: %w", err)
 
+		}
 		var writeErr error
 		var n int64
 
@@ -783,6 +788,12 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 			}
 			writeErr = body.Append(respBody)
 			fmt.Println("[Insert] Called body.Append")
+			state, err := fastly.HTTPCacheGetState(candidateResponse.cacheHandle)
+			fmt.Println("MITHIL2 state VALUE: ", state)
+			if err != nil {
+				return fmt.Errorf("get state: %w", err)
+
+			}
 		}
 
 		if writeErr != nil {
@@ -790,19 +801,18 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 			return fmt.Errorf("body write failed: %w", writeErr)
 		}
 
+		state, err = fastly.HTTPCacheGetState(candidateResponse.cacheHandle)
+		fmt.Println("MITHIL3 state VALUE: ", state)
+		if err != nil {
+			return fmt.Errorf("get state: %w", err)
+
+		}
+
 		if err := body.Close(); err != nil {
 			fmt.Println("[Insert] ERROR during body.Close():", err)
 			return fmt.Errorf("body.Close failed: %w", err)
 		}
 		fmt.Println("[Insert] body.Close successful")
-
-		ok, err := fastly.HTTPCacheTransactionInsert(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
-
-		if err != nil {
-			fmt.Println("[Insert] Error checking must-insert-or-update:", err)
-		} else {
-			fmt.Println("[Insert] MustInsertOrUpdate AFTER insert?:", ok)
-		}
 	case fastly.HTTPCacheStorageActionUpdate:
 		fmt.Println("start fastly.HTTPCacheStorageActionUpdate: ")
 

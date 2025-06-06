@@ -570,16 +570,63 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 					return
 				}
 				candidate.applyInBackground()
+				state, err := fastly.HTTPCacheGetState(cacheHandle)
+				fmt.Println("MITHIL4 state VALUE: ", state)
+				if err != nil {
+					fmt.Println("ERROROROR ", state)
+					return
+
+				}
 				age, err := candidate.Age()
 				fmt.Println("[Goroutine] Applied candidate in background, ", age)
 				fmt.Printf("[Goroutine] candidate.cacheHandle=%p, passed handle=%p\n", candidate.cacheHandle, h)
 
+				state, err = fastly.HTTPCacheGetState(cacheHandle)
+				fmt.Println("MITHIL5 state VALUE: ", state)
+				if err != nil {
+					fmt.Println("ERROROROR ", state)
+					return
+
+				}
+
+				state, err = fastly.HTTPCacheGetState(cacheHandle)
+				fmt.Println("MITHIL6 state VALUE: ", state)
+				if err != nil {
+					fmt.Println("ERROROROR ", state)
+					return
+
+				}
 				fastly.HTTPCacheTransactionClose(candidate.cacheHandle)
 				fmt.Println("[Goroutine] Closed cache handle")
+
+				state, err = fastly.HTTPCacheGetState(cacheHandle)
+				fmt.Println("MITHIL7 state VALUE: ", state)
+				if err != nil {
+					fmt.Println("ERROROROR ", state)
+					return
+
+				}
 			}(pending, cacheHandle)
+
+			state, err := fastly.HTTPCacheGetState(cacheHandle)
+			fmt.Println("MITHIL8 state VALUE: ", state)
+			if err != nil {
+				fmt.Println("ERROROROR ", state)
+				return nil, nil
+
+			}
 
 			// Let goroutine own the cacheHandle now
 			cacheHandle = nil
+		}
+		if ok, err := httpCacheMustInsertOrUpdate(cacheHandle); ok {
+			if err != nil {
+				fmt.Println("x---error checking must-insert-or-update:", err)
+			} else {
+				fmt.Printf("x---MustInsertOrUpdate? %v\n", ok)
+			}
+		} else {
+			fmt.Println("NOPEE")
 		}
 
 		resp.updateFastlyCacheHeaders(req)
