@@ -490,24 +490,6 @@ func pendingToABIResponse(ctx context.Context, errc chan error, abiPending *fast
 	}
 }
 
-func doRevalidation(p *pendingBackendRequestForCaching, h *fastly.HTTPCacheHandle) {
-	candidate, err := newCandidateFromPendingBackendCaching(p)
-	if err != nil {
-		fmt.Println("Error creating candidate:", err)
-		return
-	}
-	err = candidate.applyInBackground()
-	if err != nil {
-		fmt.Println("Error applying candidate:", err)
-		return
-	}
-	age, err := candidate.Age()
-	fmt.Println("Applied candidate synchronously, age:", age)
-
-	fastly.HTTPCacheTransactionClose(candidate.cacheHandle)
-	fmt.Println("Closed cache handle synchronously")
-}
-
 var guestCacheSWRPending sync.WaitGroup
 
 func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Response, error) {
@@ -578,8 +560,23 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 			fmt.Printf("[sendWithGuestCache] Pending: %+v\n", pending)
 
 			guestCacheSWRPending.Add(1)
-			doRevalidation(pending, cacheHandle)
-			guestCacheSWRPending.Done()
+			go func(p *pendingBackendRequestForCaching, h *fastly.HTTPCacheHandle) {
+				defer guestCacheSWRPending.Done()
+				fmt.Println("[Goroutine] Started")
+
+				candidate, err := newCandidateFromPendingBackendCaching(p)
+				if err != nil {
+					fmt.Println("[Goroutine] Error creating candidate:", err)
+					return
+				}
+				candidate.applyInBackground()
+				age, err := candidate.Age()
+				fmt.Println("[Goroutine] Applied candidate in background, ", age)
+				fmt.Printf("[Goroutine] candidate.cacheHandle=%p, passed handle=%p\n", candidate.cacheHandle, h)
+
+				fastly.HTTPCacheTransactionClose(candidate.cacheHandle)
+				fmt.Println("[Goroutine] Closed cache handle")
+			}(pending, cacheHandle)
 
 			// Let goroutine own the cacheHandle now
 			cacheHandle = nil

@@ -747,54 +747,61 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 
 	switch action {
 	case fastly.HTTPCacheStorageActionInsert:
-		fmt.Println("[Insert] Starting cache insert")
-		fmt.Printf("[Insert] cacheHandle: %p, abiResp: %v\n", candidateResponse.cacheHandle, candidateResponse.abiResp)
-		fmt.Printf("[Insert] opts: sensitive=%v, maxAge=%d, vary=%q, age=%d\n", opts.sensitive, opts.maxAge, opts.vary, opts.age)
+		// fmt.Println("[Insert] Starting cache insert")
+		// fmt.Printf("[Insert] cacheHandle: %p, abiResp: %v\n", candidateResponse.cacheHandle, candidateResponse.abiResp)
+		// fmt.Printf("[Insert] opts: sensitive=%v, maxAge=%d, vary=%q, age=%d\n", opts.sensitive, opts.maxAge, opts.vary, opts.age)
 
-		body, err := fastly.HTTPCacheTransactionInsert(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
-		fmt.Println("[Insert] Got body handle:", body)
+		// body, err := fastly.HTTPCacheTransactionInsert(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
+		// fmt.Println("[Insert] Got body handle:", body)
+		// if err != nil {
+		// 	return fmt.Errorf("cache transaction insert: %w", err)
+		// }
+
+		// var writeErr error
+		// var n int64
+
+		// if fn, respBody := candidateResponse.bodyTransform, candidateResponse.abiBody; fn != nil {
+		// 	fmt.Println("[Insert] Using bodyTransform function")
+		// 	transformed := fn(respBody)
+		// 	if transformed == nil {
+		// 		fmt.Println("[Insert] WARNING: bodyTransform returned nil reader")
+		// 	} else {
+		// 		n, writeErr = io.Copy(body, transformed)
+		// 		fmt.Println("[Insert] io.Copy wrote", n, "bytes from transformed body")
+		// 	}
+		// } else {
+		// 	fmt.Println("[Insert] No bodyTransform provided, calling body.Append")
+		// 	if respBody == nil {
+		// 		fmt.Println("[Insert] WARNING: abiBody is nil")
+		// 	} else {
+		// 		length, err := respBody.Length()
+		// 		if err != nil {
+		// 			fmt.Println("[Insert] Could not determine abiBody length:", err)
+		// 		} else {
+		// 			fmt.Println("[Insert] abiBody length before Append:", length)
+		// 		}
+		// 	}
+		// 	writeErr = body.Append(respBody)
+		// 	fmt.Println("[Insert] Called body.Append")
+		// }
+
+		// if writeErr != nil {
+		// 	fmt.Println("[Insert] ERROR writing body:", writeErr)
+		// 	return fmt.Errorf("body write failed: %w", writeErr)
+		// }
+
+		// if err := body.Close(); err != nil {
+		// 	fmt.Println("[Insert] ERROR during body.Close():", err)
+		// 	return fmt.Errorf("body.Close failed: %w", err)
+		// }
+		// fmt.Println("[Insert] body.Close successful")
+		fmt.Println("start fastly.HTTPCacheStorageActionUpdate: ")
+
+		err := fastly.HTTPCacheTransactionUpdate(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
+		fmt.Println("finished fastly.HTTPCacheStorageActionUpdate: ")
 		if err != nil {
-			return fmt.Errorf("cache transaction insert: %w", err)
+			return fmt.Errorf("cache transaction update: %w", err)
 		}
-
-		var writeErr error
-		var n int64
-
-		if fn, respBody := candidateResponse.bodyTransform, candidateResponse.abiBody; fn != nil {
-			fmt.Println("[Insert] Using bodyTransform function")
-			transformed := fn(respBody)
-			if transformed == nil {
-				fmt.Println("[Insert] WARNING: bodyTransform returned nil reader")
-			} else {
-				n, writeErr = io.Copy(body, transformed)
-				fmt.Println("[Insert] io.Copy wrote", n, "bytes from transformed body")
-			}
-		} else {
-			fmt.Println("[Insert] No bodyTransform provided, calling body.Append")
-			if respBody == nil {
-				fmt.Println("[Insert] WARNING: abiBody is nil")
-			} else {
-				length, err := respBody.Length()
-				if err != nil {
-					fmt.Println("[Insert] Could not determine abiBody length:", err)
-				} else {
-					fmt.Println("[Insert] abiBody length before Append:", length)
-				}
-			}
-			writeErr = body.Append(respBody)
-			fmt.Println("[Insert] Called body.Append")
-		}
-
-		if writeErr != nil {
-			fmt.Println("[Insert] ERROR writing body:", writeErr)
-			return fmt.Errorf("body write failed: %w", writeErr)
-		}
-
-		if err := body.Close(); err != nil {
-			fmt.Println("[Insert] ERROR during body.Close():", err)
-			return fmt.Errorf("body.Close failed: %w", err)
-		}
-		fmt.Println("[Insert] body.Close successful")
 	case fastly.HTTPCacheStorageActionUpdate:
 		fmt.Println("start fastly.HTTPCacheStorageActionUpdate: ")
 
