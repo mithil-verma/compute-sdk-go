@@ -571,7 +571,7 @@ func httpCacheGetSuggestedCacheWriteOptions(cacheHandle *fastly.HTTPCacheHandle,
 }
 
 func (candidateResponse *CandidateResponse) finalizeOptions() (fastly.HTTPCacheStorageAction, *cacheWriteOptions, error) {
-	var storageAction = fastly.HTTPCacheStorageActionUpdate //candidateResponse.suggestedStorageAction
+	var storageAction = candidateResponse.suggestedStorageAction
 
 	fmt.Println("storageActionCnadidate: ", candidateResponse.suggestedStorageAction)
 	fmt.Println("storageActionChanged: ", storageAction)
@@ -643,8 +643,6 @@ func (candidateResponse *CandidateResponse) finalizeOptions() (fastly.HTTPCacheS
 	}
 
 	opts.flushToABI()
-
-	fmt.Println("OILAST: ", storageAction)
 
 	return storageAction, &opts, nil
 }
@@ -753,10 +751,6 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 		fmt.Println("[Insert] Starting cache insert")
 		fmt.Printf("[Insert] cacheHandle: %p, abiResp: %v\n", candidateResponse.cacheHandle, candidateResponse.abiResp)
 		fmt.Printf("[Insert] opts: sensitive=%v, maxAge=%d, vary=%q, age=%d\n", opts.sensitive, opts.maxAge, opts.vary, opts.age)
-
-		candidateResponse.abiResp.RemoveHeader("Age")
-		candidateResponse.abiResp.SetHeaderValues("Cache-Control", []string{"public", "max-age=30"})
-		candidateResponse.abiResp.RemoveHeader("Expires")
 
 		body, err := fastly.HTTPCacheTransactionInsert(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
 		fmt.Println("[Insert] Got body handle:", body)
