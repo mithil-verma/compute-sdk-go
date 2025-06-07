@@ -570,51 +570,21 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 					return
 				}
 				candidate.applyInBackground()
-				state, err := fastly.HTTPCacheGetState(cacheHandle)
-				fmt.Println("MITHIL4 state VALUE: ", state)
-				if err != nil {
-					fmt.Println("ERROROROR ", state)
-					return
+				// ✅ Check state BEFORE closing
+				state, err := fastly.HTTPCacheGetState(candidate.cacheHandle)
+				fmt.Println("[Insert] Final cache state BEFORE close:", state, "err:", err)
 
-				}
+				ok, err := httpCacheMustInsertOrUpdate(candidate.cacheHandle)
+				fmt.Println("[Insert] MustInsertOrUpdate after insert:", ok, "err:", err)
+
 				age, err := candidate.Age()
 				fmt.Println("[Goroutine] Applied candidate in background, ", age)
 				fmt.Printf("[Goroutine] candidate.cacheHandle=%p, passed handle=%p\n", candidate.cacheHandle, h)
 
-				state, err = fastly.HTTPCacheGetState(cacheHandle)
-				fmt.Println("MITHIL5 state VALUE: ", state)
-				if err != nil {
-					fmt.Println("ERROROROR ", state)
-					return
-
-				}
-
-				state, err = fastly.HTTPCacheGetState(cacheHandle)
-				fmt.Println("MITHIL6 state VALUE: ", state)
-				if err != nil {
-					fmt.Println("ERROROROR ", state)
-					return
-
-				}
 				fastly.HTTPCacheTransactionClose(candidate.cacheHandle)
 				fmt.Println("[Goroutine] Closed cache handle")
 
-				state, err = fastly.HTTPCacheGetState(cacheHandle)
-				fmt.Println("MITHIL7 state VALUE: ", state)
-				if err != nil {
-					fmt.Println("ERROROROR ", state)
-					return
-
-				}
 			}(pending, cacheHandle)
-
-			state, err := fastly.HTTPCacheGetState(cacheHandle)
-			fmt.Println("MITHIL8 state VALUE: ", state)
-			if err != nil {
-				fmt.Println("ERROROROR ", state)
-				return nil, nil
-
-			}
 
 			// Let goroutine own the cacheHandle now
 			cacheHandle = nil

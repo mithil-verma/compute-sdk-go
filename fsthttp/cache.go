@@ -756,12 +756,7 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 		if err != nil {
 			return fmt.Errorf("cache transaction insert: %w", err)
 		}
-		state, err := fastly.HTTPCacheGetState(candidateResponse.cacheHandle)
-		fmt.Println("MITHIL1 state VALUE: ", state)
-		if err != nil {
-			return fmt.Errorf("get state: %w", err)
 
-		}
 		var writeErr error
 		var n int64
 
@@ -788,24 +783,12 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 			}
 			writeErr = body.Append(respBody)
 			fmt.Println("[Insert] Called body.Append")
-			state, err := fastly.HTTPCacheGetState(candidateResponse.cacheHandle)
-			fmt.Println("MITHIL2 state VALUE: ", state)
-			if err != nil {
-				return fmt.Errorf("get state: %w", err)
 
-			}
 		}
 
 		if writeErr != nil {
 			fmt.Println("[Insert] ERROR writing body:", writeErr)
 			return fmt.Errorf("body write failed: %w", writeErr)
-		}
-
-		state, err = fastly.HTTPCacheGetState(candidateResponse.cacheHandle)
-		fmt.Println("MITHIL3 state VALUE: ", state)
-		if err != nil {
-			return fmt.Errorf("get state: %w", err)
-
 		}
 
 		if err := body.Close(); err != nil {
