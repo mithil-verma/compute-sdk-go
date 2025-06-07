@@ -589,15 +589,6 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 			// Let goroutine own the cacheHandle now
 			cacheHandle = nil
 		}
-		if ok, err := httpCacheMustInsertOrUpdate(cacheHandle); ok {
-			if err != nil {
-				fmt.Println("x---error checking must-insert-or-update:", err)
-			} else {
-				fmt.Printf("x---MustInsertOrUpdate? %v\n", ok)
-			}
-		} else {
-			fmt.Println("NOPEE")
-		}
 
 		resp.updateFastlyCacheHeaders(req)
 		fmt.Println("[sendWithGuestCache] Returning cached response")
