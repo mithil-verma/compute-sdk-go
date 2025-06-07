@@ -577,7 +577,7 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 				ok, err := httpCacheMustInsertOrUpdate(candidate.cacheHandle)
 				fmt.Println("[Insert] MustInsertOrUpdate after insert:", ok, "err:", err)
 
-				age, err := candidate.Age()
+				age, _ := candidate.Age()
 				fmt.Println("[Goroutine] Applied candidate in background, ", age)
 				fmt.Printf("[Goroutine] candidate.cacheHandle=%p, passed handle=%p\n", candidate.cacheHandle, h)
 

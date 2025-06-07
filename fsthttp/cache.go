@@ -571,9 +571,10 @@ func httpCacheGetSuggestedCacheWriteOptions(cacheHandle *fastly.HTTPCacheHandle,
 }
 
 func (candidateResponse *CandidateResponse) finalizeOptions() (fastly.HTTPCacheStorageAction, *cacheWriteOptions, error) {
-	var storageAction = candidateResponse.suggestedStorageAction
+	var storageAction = fastly.HTTPCacheStorageActionUpdate //candidateResponse.suggestedStorageAction
 
-	fmt.Println("storageAction: ", candidateResponse.suggestedStorageAction)
+	fmt.Println("storageActionCnadidate: ", candidateResponse.suggestedStorageAction)
+	fmt.Println("storageActionChanged: ", storageAction)
 
 	if candidateResponse.useStorageAction {
 		fmt.Println("candidateResponse.useStorageAction: ", candidateResponse.overrideStorageAction)
@@ -642,6 +643,8 @@ func (candidateResponse *CandidateResponse) finalizeOptions() (fastly.HTTPCacheS
 	}
 
 	opts.flushToABI()
+
+	fmt.Println("OILAST: ", storageAction)
 
 	return storageAction, &opts, nil
 }
