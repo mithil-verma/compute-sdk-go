@@ -154,10 +154,15 @@ func httpCacheWait(c *fastly.HTTPCacheHandle) error {
 
 func httpCacheMustInsertOrUpdate(c *fastly.HTTPCacheHandle) (bool, error) {
 	state, err := fastly.HTTPCacheGetState(c)
+	fmt.Println("THE REQ STATE::::", state)
+
 	if err != nil {
 		return false, fmt.Errorf("get state: %w", err)
 
 	}
+	fmt.Println("state&fastly.CacheLookupStateMustInsertOrUpdate: ", state&fastly.CacheLookupStateMustInsertOrUpdate)
+	fmt.Println("fastly.CacheLookupStateMustInsertOrUpdate: ", fastly.CacheLookupStateMustInsertOrUpdate)
+
 	return state&fastly.CacheLookupStateMustInsertOrUpdate == fastly.CacheLookupStateMustInsertOrUpdate, nil
 }
 
@@ -219,6 +224,9 @@ func newCandidateFromPendingBackendCaching(pending *pendingBackendRequestForCach
 
 func newCandidate(c *fastly.HTTPCacheHandle, opts *CacheOptions, abiResp *fastly.HTTPResponse, abiBody *fastly.HTTPBody) (*CandidateResponse, error) {
 	storageAction, abiResp, err := fastly.HTTPCachePrepareResponseForStorage(c, abiResp)
+	fmt.Println("Storage Action: ", storageAction)
+	fmt.Println("abiResp: ", abiResp)
+
 	if err != nil {
 		return nil, fmt.Errorf("prepare response for storage: %w", err)
 	}
@@ -249,13 +257,17 @@ func newCandidate(c *fastly.HTTPCacheHandle, opts *CacheOptions, abiResp *fastly
 		candidate.useTTL = true
 	}
 
+	fmt.Println("Override TTL: ", candidate.overrideTTL)
 	if candidate.overrideStaleWhileRevalidate != 0 {
 		candidate.useSWR = true
 	}
 
+	fmt.Println("OverrideStaleWhileRevalidate: ", candidate.overrideStaleWhileRevalidate)
+
 	if candidate.overridePCI {
 		candidate.usePCI = true
 	}
+	fmt.Println("OverridePCI: ", candidate.overridePCI)
 
 	return &candidate, nil
 }
@@ -562,6 +574,8 @@ func (candidateResponse *CandidateResponse) finalizeOptions() (fastly.HTTPCacheS
 		storageAction = candidateResponse.overrideStorageAction
 	}
 
+	fmt.Println("Mithil Storage Action: ", storageAction)
+
 	suggestedCacheWriteOptions := candidateResponse.suggestedCacheWriteOptions
 	if suggestedCacheWriteOptions == nil {
 		var err error
@@ -714,6 +728,8 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 	}
 	switch action {
 	case fastly.HTTPCacheStorageActionInsert:
+		fmt.Println("fastly.HTTPCacheStorageActionInsert: ")
+
 		body, err := fastly.HTTPCacheTransactionInsert(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
 		if err != nil {
 			return fmt.Errorf("cache transaction insert: %w", err)
