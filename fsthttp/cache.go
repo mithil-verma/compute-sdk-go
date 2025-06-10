@@ -642,6 +642,7 @@ func (candidateResponse *CandidateResponse) applyAndStreamBack(req *Request) (*R
 	}
 	switch action {
 	case fastly.HTTPCacheStorageActionInsert:
+		fmt.Println("xmithil in HTTPCacheTransactionInsertAndStreamback")
 		body, readback, err := fastly.HTTPCacheTransactionInsertAndStreamback(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
 		if err != nil {
 			return nil, fmt.Errorf("cache transaction insert and stream back: %w", err)
@@ -663,6 +664,8 @@ func (candidateResponse *CandidateResponse) applyAndStreamBack(req *Request) (*R
 		}
 
 	case fastly.HTTPCacheStorageActionUpdate:
+		fmt.Println("xmithil in HTTPCacheTransactionUpdateAndReturnFresh")
+
 		newch, err := fastly.HTTPCacheTransactionUpdateAndReturnFresh(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
 		if err != nil {
 			return nil, fmt.Errorf("cache transaction update and return fresh: %w", err)
