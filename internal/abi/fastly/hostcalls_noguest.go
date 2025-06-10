@@ -647,8 +647,8 @@ func (o *HTTPCacheWriteOptions) SetSensitiveData(sensitive bool) {}
 
 func (o *HTTPCacheWriteOptions) SensitiveData() bool { return false }
 
-func HTTPCacheTransactionInsert(h *HTTPCacheHandle, resp *HTTPResponse, opts *HTTPCacheWriteOptions) (*HTTPBody, error) {
-	return nil, fmt.Errorf("not implemented")
+func HTTPCacheTransactionInsert(h *HTTPCacheHandle, resp *HTTPResponse, opts *HTTPCacheWriteOptions) (*HTTPBody, *HTTPCacheHandle, error) {
+	return nil, nil, fmt.Errorf("not implemented")
 }
 
 func HTTPCacheTransactionInsertAndStreamback(h *HTTPCacheHandle, resp *HTTPResponse, opts *HTTPCacheWriteOptions) (*HTTPBody, *HTTPCacheHandle, error) {

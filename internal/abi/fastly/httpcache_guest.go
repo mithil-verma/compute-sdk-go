@@ -319,10 +319,12 @@ func fastlyHTTPCacheTransactionInsert(
 	mask httpCacheWriteOptionsMask,
 	opts prim.Pointer[httpCacheWriteOptions],
 	bodyHandle prim.Pointer[bodyHandle],
+	newh prim.Pointer[httpCacheHandle],
 ) FastlyStatus
 
-func HTTPCacheTransactionInsert(h *HTTPCacheHandle, resp *HTTPResponse, opts *HTTPCacheWriteOptions) (*HTTPBody, error) {
+func HTTPCacheTransactionInsert(h *HTTPCacheHandle, resp *HTTPResponse, opts *HTTPCacheWriteOptions) (*HTTPBody, *HTTPCacheHandle, error) {
 	var body bodyHandle = invalidBodyHandle
+	var newh httpCacheHandle = invalidHTTPCacheHandle
 
 	if err := fastlyHTTPCacheTransactionInsert(
 		h.h,
@@ -330,11 +332,12 @@ func HTTPCacheTransactionInsert(h *HTTPCacheHandle, resp *HTTPResponse, opts *HT
 		opts.mask,
 		prim.ToPointer(&opts.opts),
 		prim.ToPointer(&body),
+		prim.ToPointer(&newh),
 	).toError(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &HTTPBody{h: body, closable: true}, nil
+	return &HTTPBody{h: body, closable: true}, &HTTPCacheHandle{h: newh}, nil
 }
 
 // witx:

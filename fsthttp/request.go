@@ -569,7 +569,7 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 					fmt.Println("[Goroutine] Error creating candidate:", err)
 					return
 				}
-				candidate.applyInBackground()
+				resp, _ = candidate.applyInBackground(req)
 				// ✅ Check state BEFORE closing
 				state, err := fastly.HTTPCacheGetState(candidate.cacheHandle)
 				fmt.Println("[Insert] Final cache state BEFORE close:", state, "err:", err)

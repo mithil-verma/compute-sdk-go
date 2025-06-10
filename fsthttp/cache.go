@@ -721,34 +721,42 @@ func (candidateResponse *CandidateResponse) applyAndStreamBack(req *Request) (*R
 	return resp, nil
 }
 
-func (candidateResponse *CandidateResponse) applyInBackground() error {
+func (candidateResponse *CandidateResponse) applyInBackground(req *Request) (*Response, error) {
+	var resp *Response
 	action, opts, err := candidateResponse.finalizeOptions()
+
 	if err != nil {
-		return err
+		return nil, err
 	}
 	switch action {
 	case fastly.HTTPCacheStorageActionInsert:
 		fmt.Println("fastly.HTTPCacheStorageActionInsert: ")
 
-		body, err := fastly.HTTPCacheTransactionInsert(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
+		body, readback, err := fastly.HTTPCacheTransactionInsert(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
 		if err != nil {
-			return fmt.Errorf("cache transaction insert: %w", err)
+			return nil, fmt.Errorf("cache transaction insert: %w", err)
 		}
+
+		defer fastly.HTTPCacheTransactionClose(readback)
 
 		if fn, respBody := candidateResponse.bodyTransform, candidateResponse.abiBody; fn != nil {
 			if _, err := io.Copy(body, fn(respBody)); err != nil {
-				return fmt.Errorf("bodyTransform: io.Copy: %w", err)
+				return nil, fmt.Errorf("bodyTransform: io.Copy: %w", err)
 			}
 		} else if err := body.Append(respBody); err != nil {
-			return fmt.Errorf("body.Append(): %w", err)
+			return nil, fmt.Errorf("body.Append(): %w", err)
 		}
 		body.Close()
+		resp, err = httpCacheGetFoundResponse(readback, req, "", false)
+		if err != nil {
+			return nil, fmt.Errorf("cache get found response: %w", err)
+		}
 
 	case fastly.HTTPCacheStorageActionUpdate:
 		fmt.Println("mithil In the update:")
 		err := fastly.HTTPCacheTransactionUpdate(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
 		if err != nil {
-			return fmt.Errorf("cache transaction update: %w", err)
+			return nil, fmt.Errorf("cache transaction update: %w", err)
 		}
 
 	case fastly.HTTPCacheStorageActionDoNotStore:
@@ -757,18 +765,18 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 		// non-hit-for-pass case, so concurrent requests remain
 		// serialized.
 		if err := fastly.HTTPCacheTransactionAbandon(candidateResponse.cacheHandle); err != nil {
-			return fmt.Errorf("cache transaction abandon: %w", err)
+			return nil, fmt.Errorf("cache transaction abandon: %w", err)
 		}
 
 	case fastly.HTTPCacheStorageActionRecordUncacheable:
 		fmt.Println("mithil In the uncacheable:")
 		err := fastly.HTTPCacheTransactionRecordNotCacheable(candidateResponse.cacheHandle, &opts.abiOpts)
 		if err != nil {
-			return fmt.Errorf("cache transaction record not cacheable: %w", err)
+			return nil, fmt.Errorf("cache transaction record not cacheable: %w", err)
 		}
 	}
 
-	return nil
+	return resp, nil
 }
 
 func newResponseFromCandidate(candidate *CandidateResponse, req *Request, opts *cacheWriteOptions) (*Response, error) {
