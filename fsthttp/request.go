@@ -362,21 +362,33 @@ func (req *Request) Send(ctx context.Context, backend string) (*Response, error)
 	if req.sent {
 		return nil, fmt.Errorf("request already sent")
 	}
+	fmt.Println("mithil5")
 
 	if req.abi.req == nil && req.abi.body == nil {
 		//  abi request not yet constructed
+		fmt.Println("mithil4")
+
 		if err := req.constructABIRequest(); err != nil {
+			fmt.Println("mithil6")
+
 			return nil, err
 		}
 		if err := req.setABIRequestOptions(); err != nil {
+			fmt.Println("mithil7")
+
 			return nil, err
 		}
 	}
 
+	fmt.Println("mithil1")
+
 	if ok, err := req.shouldUseGuestCaching(); err != nil {
 		// can't determine if we should use guest cache or host cache
+		fmt.Println("mithil2")
+
 		return nil, err
 	} else if ok {
+		fmt.Println("mithil3")
 		response, err := req.sendWithGuestCache(ctx, backend)
 		if err != nil {
 			return nil, fmt.Errorf("send with guest cache: %w", err)
@@ -418,9 +430,11 @@ func (req *Request) Send(ctx context.Context, backend string) (*Response, error)
 	req.sent = true
 
 	if streaming {
+		fmt.Println("HERE123")
 		go req.copyBody(errc)
 		abiPending, err = req.abi.req.SendAsyncStreaming(req.abi.body, backend)
 	} else {
+		fmt.Println("HERE224")
 		req.copyBody(errc)
 		abiPending, err = req.abi.req.SendAsync(req.abi.body, backend)
 	}
