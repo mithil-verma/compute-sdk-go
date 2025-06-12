@@ -430,6 +430,9 @@ func (req *Request) Send(ctx context.Context, backend string) (*Response, error)
 
 	if streaming {
 		fmt.Println("HERE123")
+		fmt.Println("BODY: ", req.abi.body)
+		fmt.Println("BAKEND: ", backend)
+
 		go req.copyBody(errc)
 		abiPending, err = req.abi.req.SendAsyncStreaming(req.abi.body, backend)
 	} else {

@@ -1165,7 +1165,11 @@ func fastlyHTTPReqSendAsyncStreaming(
 func (r *HTTPRequest) SendAsyncStreaming(requestBody *HTTPBody, backend string) (*PendingRequest, error) {
 	var pendingHandle = invalidPendingRequestHandle
 
+	fmt.Println("SendAsyncStreaming: ", pendingHandle)
+
 	backendBuffer := prim.NewReadBufferFromString(backend).Wstring()
+
+	fmt.Println("NewReadBufferFromString: ", backendBuffer)
 
 	if err := fastlyHTTPReqSendAsyncStreaming(
 		r.h,
@@ -1173,6 +1177,8 @@ func (r *HTTPRequest) SendAsyncStreaming(requestBody *HTTPBody, backend string) 
 		backendBuffer.Data, backendBuffer.Len,
 		prim.ToPointer(&pendingHandle),
 	).toError(); err != nil {
+		fmt.Println("ERRRRRRR ", err)
+
 		return nil, err
 	}
 
