@@ -158,6 +158,8 @@ func httpCacheMustInsertOrUpdate(c *fastly.HTTPCacheHandle) (bool, error) {
 		return false, fmt.Errorf("get state: %w", err)
 
 	}
+	fmt.Println("GET STATE:  ", state)
+
 	return state&fastly.CacheLookupStateMustInsertOrUpdate == fastly.CacheLookupStateMustInsertOrUpdate, nil
 }
 
@@ -572,10 +574,13 @@ func (candidateResponse *CandidateResponse) finalizeOptions() (fastly.HTTPCacheS
 		}
 	}
 
+	fmt.Println("Suggested Storage Action: ", candidateResponse.suggestedStorageAction)
+
 	var opts cacheWriteOptions
 
 	if candidateResponse.useTTL {
 		opts.maxAge = candidateResponse.overrideTTL - suggestedCacheWriteOptions.age
+		fmt.Println("What the TTL is: ", opts.age)
 	} else {
 		opts.maxAge = suggestedCacheWriteOptions.maxAge
 	}
@@ -613,6 +618,12 @@ func (candidateResponse *CandidateResponse) finalizeOptions() (fastly.HTTPCacheS
 		}
 	}
 
+	fmt.Println("------------------")
+	fmt.Println("SWR Time: ", opts.stale)
+	fmt.Println("Max Age Time: ", opts.maxAge)
+	fmt.Println("Age to reset to: ", opts.age)
+	fmt.Println("------------------")
+
 	opts.flushToABI()
 
 	return storageAction, &opts, nil
@@ -635,14 +646,19 @@ func bodyHasKnownLength(body io.ReadCloser) (uint64, bool) {
 }
 
 func (candidateResponse *CandidateResponse) applyAndStreamBack(req *Request) (*Response, error) {
+
 	var resp *Response
 
 	action, opts, err := candidateResponse.finalizeOptions()
+	fmt.Println("In Apply Streamback ", action)
+
 	if err != nil {
 		return nil, fmt.Errorf("finalize options: %w", err)
 	}
 	switch action {
 	case fastly.HTTPCacheStorageActionInsert:
+		fmt.Println("In INSERT")
+
 		body, readback, err := fastly.HTTPCacheTransactionInsertAndStreamback(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
 		if err != nil {
 			return nil, fmt.Errorf("cache transaction insert and stream back: %w", err)
@@ -664,6 +680,8 @@ func (candidateResponse *CandidateResponse) applyAndStreamBack(req *Request) (*R
 		}
 
 	case fastly.HTTPCacheStorageActionUpdate:
+		fmt.Println("In UPDATE")
+
 		newch, err := fastly.HTTPCacheTransactionUpdateAndReturnFresh(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
 		if err != nil {
 			return nil, fmt.Errorf("cache transaction update and return fresh: %w", err)
@@ -676,6 +694,8 @@ func (candidateResponse *CandidateResponse) applyAndStreamBack(req *Request) (*R
 		}
 
 	case fastly.HTTPCacheStorageActionDoNotStore:
+		fmt.Println("In DO NOTSTORE")
+
 		// Use `abandon` to only wake a single waiter in the
 		// non-hit-for-pass case, so concurrent requests remain
 		// serialized.
@@ -690,6 +710,8 @@ func (candidateResponse *CandidateResponse) applyAndStreamBack(req *Request) (*R
 		}
 
 	case fastly.HTTPCacheStorageActionRecordUncacheable:
+		fmt.Println("SA RECORD UNCACHEABLE")
+
 		err := fastly.HTTPCacheTransactionRecordNotCacheable(candidateResponse.cacheHandle, &opts.abiOpts)
 		if err != nil {
 			return nil, fmt.Errorf("cache transaction record not cacheable: %w", err)
@@ -728,12 +750,11 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 		body.Close()
 
 	case fastly.HTTPCacheStorageActionInsert:
-
-		newch, err := fastly.HTTPCacheTransactionUpdate(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
+		err := fastly.HTTPCacheTransactionUpdate(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
+		fmt.Println("WE ARE UPDATING")
 		if err != nil {
 			return fmt.Errorf("cache transaction update: %w", err)
 		}
-		defer fastly.HTTPCacheTransactionClose(newch)
 
 	case fastly.HTTPCacheStorageActionDoNotStore:
 		// Use `abandon` to only wake a single waiter in the
