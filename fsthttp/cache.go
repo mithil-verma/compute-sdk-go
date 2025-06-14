@@ -256,6 +256,7 @@ func newCandidate(c *fastly.HTTPCacheHandle, opts *CacheOptions, abiResp *fastly
 	if candidate.overridePCI {
 		candidate.usePCI = true
 	}
+	candidate.SetCacheable()
 
 	return &candidate, nil
 }
@@ -710,8 +711,9 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 		return err
 	}
 	switch action {
-	case fastly.HTTPCacheStorageActionInsert:
+	case fastly.HTTPCacheStorageActionUpdate:
 		body, err := fastly.HTTPCacheTransactionInsert(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
+		fmt.Println("WE ARE INSERTING")
 		if err != nil {
 			return fmt.Errorf("cache transaction insert: %w", err)
 		}
@@ -725,21 +727,25 @@ func (candidateResponse *CandidateResponse) applyInBackground() error {
 		}
 		body.Close()
 
-	case fastly.HTTPCacheStorageActionUpdate:
-		err := fastly.HTTPCacheTransactionUpdate(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
+	case fastly.HTTPCacheStorageActionInsert:
+
+		newch, err := fastly.HTTPCacheTransactionUpdate(candidateResponse.cacheHandle, candidateResponse.abiResp, &opts.abiOpts)
 		if err != nil {
 			return fmt.Errorf("cache transaction update: %w", err)
 		}
+		defer fastly.HTTPCacheTransactionClose(newch)
 
 	case fastly.HTTPCacheStorageActionDoNotStore:
 		// Use `abandon` to only wake a single waiter in the
 		// non-hit-for-pass case, so concurrent requests remain
 		// serialized.
+		fmt.Println("WE ARE NOT STORING")
 		if err := fastly.HTTPCacheTransactionAbandon(candidateResponse.cacheHandle); err != nil {
 			return fmt.Errorf("cache transaction abandon: %w", err)
 		}
 
 	case fastly.HTTPCacheStorageActionRecordUncacheable:
+		fmt.Println("WE ARE DEALING WITH UNCACHEABLE REQUEST")
 		err := fastly.HTTPCacheTransactionRecordNotCacheable(candidateResponse.cacheHandle, &opts.abiOpts)
 		if err != nil {
 			return fmt.Errorf("cache transaction record not cacheable: %w", err)

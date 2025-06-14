@@ -655,8 +655,8 @@ func HTTPCacheTransactionInsertAndStreamback(h *HTTPCacheHandle, resp *HTTPRespo
 	return nil, nil, fmt.Errorf("not implemented")
 }
 
-func HTTPCacheTransactionUpdate(h *HTTPCacheHandle, resp *HTTPResponse, opts *HTTPCacheWriteOptions) error {
-	return fmt.Errorf("not implemented")
+func HTTPCacheTransactionUpdate(h *HTTPCacheHandle, resp *HTTPResponse, opts *HTTPCacheWriteOptions) (*HTTPCacheHandle, error) {
+	return nil, fmt.Errorf("not implemented")
 }
 
 func HTTPCacheTransactionUpdateAndReturnFresh(h *HTTPCacheHandle, resp *HTTPResponse, opts *HTTPCacheWriteOptions) (*HTTPCacheHandle, error) {

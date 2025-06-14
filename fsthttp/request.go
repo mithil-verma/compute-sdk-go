@@ -539,11 +539,13 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 	}
 
 	if resp != nil {
+		fmt.Println("We got a response from cache")
 		// got a response from the cache
 
 		// if this is during SWR, we may be the "lucky winner" who is
 		// tasked with performing a background revalidation
 		if ok, _ := httpCacheMustInsertOrUpdate(cacheHandle); ok {
+			fmt.Println("A request was sent for revalidation")
 			pending, err := req.sendAsyncForCaching(ctx, cacheHandle, backend)
 			if err != nil {
 				return nil, err
@@ -553,11 +555,12 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 			go func(p *pendingBackendRequestForCaching, h *fastly.HTTPCacheHandle) {
 				candidate, err := newCandidateFromPendingBackendCaching(p)
 				if err != nil {
+					fmt.Println("ERROR with new Candidate: ", err)
 					// nowhere to log error
 					return
 				}
 				candidate.applyInBackground()
-				fastly.HTTPCacheTransactionClose(h)
+				//fastly.HTTPCacheTransactionClose(h)
 			}(pending, cacheHandle)
 			// let cache handle be closed in goroutine
 			cacheHandle = nil
@@ -572,6 +575,8 @@ func (req *Request) sendWithGuestCache(ctx context.Context, backend string) (*Re
 	// no cached response
 
 	if ok, _ := httpCacheMustInsertOrUpdate(cacheHandle); ok {
+
+		fmt.Println("No cached response Block")
 
 		pending, err := req.sendAsyncForCaching(ctx, cacheHandle, backend)
 		if err != nil {
@@ -649,6 +654,7 @@ func (req *Request) sendAsyncForCaching(ctx context.Context, cacheHandle *fastly
 		return nil, err
 	}
 
+	fmt.Println("Background request attributes: ", suggReq.CacheOptions)
 	if suggReq.CacheOptions.BeforeSend != nil {
 		if err := suggReq.CacheOptions.BeforeSend(suggReq); err != nil {
 			// TODO(dgryski): sentinel ErrReject ?
@@ -670,6 +676,13 @@ func (req *Request) sendAsyncForCaching(ctx context.Context, cacheHandle *fastly
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Pending Backend Request for Caching: ", &pendingBackendRequestForCaching{
+		cacheHandle:  cacheHandle,
+		req:          suggReq,
+		pending:      abiPending,
+		afterSend:    req.CacheOptions.AfterSend,
+		cacheOptions: finalCacheOptions,
+	})
 
 	return &pendingBackendRequestForCaching{
 		cacheHandle:  cacheHandle,

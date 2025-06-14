@@ -409,19 +409,23 @@ func fastlyHTTPCacheTransactionUpdate(
 	r responseHandle,
 	mask httpCacheWriteOptionsMask,
 	opts prim.Pointer[httpCacheWriteOptions],
+	newh prim.Pointer[httpCacheHandle],
 ) FastlyStatus
 
-func HTTPCacheTransactionUpdate(h *HTTPCacheHandle, resp *HTTPResponse, opts *HTTPCacheWriteOptions) error {
+func HTTPCacheTransactionUpdate(h *HTTPCacheHandle, resp *HTTPResponse, opts *HTTPCacheWriteOptions) (*HTTPCacheHandle, error) {
+	var newh = invalidHTTPCacheHandle
+
 	if err := fastlyHTTPCacheTransactionUpdate(
 		h.h,
 		resp.h,
 		opts.mask,
 		prim.ToPointer(&opts.opts),
+		prim.ToPointer(&newh),
 	).toError(); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &HTTPCacheHandle{h: newh}, nil
 }
 
 // witx:
